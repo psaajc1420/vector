@@ -21,51 +21,106 @@ class Vector {
   using reference = T &;
   using const_reference = const T *;
 
+  template<typename K=T>
   class Iterator {
-   public:
 
-    using self_type = Iterator;
-    using self_type_reference = Iterator;
+    using SelfType = Iterator;
+   public:
 
     using iterator_category = std::random_access_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = T;
-    using pointer = T *;
-    using reference = T &;
+    using value_type = K;
+    using pointer = K *;
+    using reference = K &;
 
-    explicit Iterator() = default;
-    explicit Iterator(pointer ptr) : ptr_(ptr) {}
-    self_type_reference operator++() {
+    explicit Iterator(pointer ptr = nullptr) : ptr_(ptr) {}
+    Iterator(const SelfType &iterator) = default;
+
+    SelfType &operator=(const SelfType &iterator) = default;
+    SelfType &operator=(pointer ptr) {
+      ptr_ = ptr;
+      return *this;
+    }
+
+    SelfType &operator++() {
       ptr_++;
       return *this;
     }
-    self_type operator++(int) {
-      self_type copy = *this;
+    SelfType operator++(int) {
+      SelfType copy = *this;
       ++(*this);
       return copy;
     }
+
+    SelfType &operator--() {
+      ptr_--;
+      return *this;
+    }
+    SelfType operator--(int) {
+      SelfType copy = *this;
+      --(*this);
+      return copy;
+    }
+
     reference operator*() { return *ptr_; }
+    const SelfType &operator*() const { return *ptr_; }
     pointer operator->() { return ptr_; }
-    friend bool operator==(const self_type &lhs, const self_type &rhs) {
+
+    friend bool operator==(const SelfType &lhs,
+                           const SelfType &rhs) {
       return lhs.ptr_ == rhs.ptr_;
     }
-    friend bool operator!=(const self_type &lhs, const self_type &rhs) {
+    friend bool operator!=(const SelfType &lhs,
+                           const SelfType &rhs) {
       return lhs.ptr_ != rhs.ptr_;
     }
 
-    friend bool operator<(const self_type &lhs, const self_type &rhs) {
+    SelfType &operator+=(const difference_type &movement) {
+      ptr_ += movement;
+      return (*this);
+    }
+    SelfType &operator-=(const difference_type &movement) {
+      ptr_ -= movement;
+      return (*this);
+    }
+
+    SelfType operator+(const difference_type &increment) {
+      auto old_ptr = ptr_;
+      ptr_ += increment;
+      auto temp(*this);
+      ptr_ = old_ptr;
+      return temp;
+    }
+
+    SelfType operator-(const difference_type &increment) {
+      auto old_ptr = ptr_;
+      ptr_ -= increment;
+      auto temp(*this);
+      ptr_ = old_ptr;
+      return temp;
+    }
+
+    friend difference_type operator-(const SelfType &lhs, const SelfType &rhs) {
+      return std::distance(rhs.ptr_, lhs.ptr_);
+    }
+
+    friend bool operator<(const SelfType &lhs,
+                          const SelfType &rhs) {
       return lhs.ptr_ < rhs.ptr_;
     }
 
-    friend bool operator>(const self_type &lhs, const self_type &rhs) {
+    friend bool operator>(const SelfType &lhs,
+                          const SelfType &rhs) {
       return lhs.ptr_ > rhs.ptr_;
     }
 
-    friend bool operator<=(const self_type &lhs, const self_type &rhs) {
+    friend bool operator<=(const SelfType &lhs,
+                           const SelfType &rhs) {
       return lhs.ptr_ <= rhs.ptr_;
     }
 
-    friend bool operator>=(const self_type &lhs, const self_type &rhs) {
+    friend bool operator>=(const SelfType &lhs,
+                           const SelfType &rhs) {
       return lhs.ptr_ >= rhs.ptr_;
     }
 
@@ -74,8 +129,8 @@ class Vector {
 
   };
 
-  using iterator = Iterator;
-  using const_iterator = const Iterator;
+  using iterator = Iterator<T>;
+  using const_iterator = Iterator<const T>;
 
   explicit Vector();
   Vector(const Vector<T> &);
@@ -92,8 +147,11 @@ class Vector {
 
   T &operator[](size_t) const;
 
-  Iterator Begin() noexcept;
-  Iterator End() noexcept;
+  iterator Begin() noexcept;
+  const_iterator cBegin() const noexcept;
+
+  iterator End() noexcept;
+  const_iterator cEnd() const noexcept;
  private:
   T *data_;
   size_t size_{};
@@ -164,14 +222,25 @@ void Vector<T>::Clear() noexcept {
 }
 
 template<typename T>
-typename Vector<T>::Iterator Vector<T>::Begin() noexcept {
-  return Vector::Iterator(data_);
+typename Vector<T>::template Iterator<T> Vector<T>::Begin() noexcept {
+  return Vector::Iterator<T>(data_);
 }
 
 template<typename T>
-typename Vector<T>::Iterator Vector<T>::End() noexcept {
-  return Vector::Iterator(data_ + size_);
+typename Vector<T>::template Iterator<T> Vector<T>::End() noexcept {
+  return Vector::Iterator<T>(data_ + size_);
 }
+
+template<typename T>
+typename Vector<T>::template Iterator<const T> Vector<T>::cBegin() const noexcept {
+  return Vector::Iterator<const T>(data_);
+}
+
+template<typename T>
+typename Vector<T>::template Iterator<const T> Vector<T>::cEnd() const noexcept {
+  return Vector::Iterator<const T>(data_ + size_);
+}
+
 template<typename T>
 void Vector<T>::Resize() {
   capacity_ = 2 * capacity_;
