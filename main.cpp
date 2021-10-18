@@ -1,15 +1,36 @@
 #include <iostream>
+#include <algorithm>
 #include "vector.h"
 
-using namespace std;
+template<typename RandomAccessIterator>
+void BubbleSort(RandomAccessIterator first, RandomAccessIterator last) {
+  for (auto i = first; i != last; ++i)
+    for (auto j = first; j < i; ++j)
+      if (*i < *j) std::swap(*i, *j);
+
+}
+
+template<typename ForwardIterator, typename T>
+ForwardIterator Find(T key, ForwardIterator first, ForwardIterator last) {
+
+  for (auto it = first; it != last; ++it) {
+    if (*it == key) return it;
+  }
+
+  return last;
+}
 
 int main() {
+  library::Vector<int> nums = {4, 5, 10, 1, 3, 45, 2};
+  BubbleSort(nums.Begin(), nums.End());
 
-  Vector<int> nums = {1, 2, 3, 4, 5};
+  for (auto it = nums.Begin(); it != nums.End(); ++it) {
+    std::cout << *it << " ";
+  }
+  std::cout << std::endl;
 
-  cout << nums.Size() << endl;
-
-//  for (int i = 0; i < nums.Size(); i++) cout << nums[i] << endl;
+  auto it = Find(1, nums.Begin(), nums.End());
+  std::cout << *it << std::endl;
 
   return 0;
 }

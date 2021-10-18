@@ -6,27 +6,76 @@
 #define VECTOR__VECTOR_H_
 
 #include <cstdio>
+#include <iterator>
 #include <initializer_list>
 
-using std::size_t;
+namespace library {
 
 template<typename T>
 class Vector {
+
  public:
+
+  using value_type = T;
+  using size_type = std::size_t;
+  using reference = T &;
+  using const_reference = const T *;
+
   class Iterator {
    public:
+
+    using self_type = Iterator;
+    using self_type_reference = Iterator;
+
+    using iterator_category = std::random_access_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = T;
+    using pointer = T *;
+    using reference = T &;
+
     explicit Iterator() = default;
-    Iterator(const Vector<T> &vec, size_t index) : vec_{vec}, index_{index} {}
-    T &operator*() const;
-    Iterator operator++();
-    bool operator==(const Iterator &) const;
-    bool operator!=(const Iterator &) const;
+    explicit Iterator(pointer ptr) : ptr_(ptr) {}
+    self_type_reference operator++() {
+      ptr_++;
+      return *this;
+    }
+    self_type operator++(int) {
+      self_type copy = *this;
+      ++(*this);
+      return copy;
+    }
+    reference operator*() { return *ptr_; }
+    pointer operator->() { return ptr_; }
+    friend bool operator==(const self_type &lhs, const self_type &rhs) {
+      return lhs.ptr_ == rhs.ptr_;
+    }
+    friend bool operator!=(const self_type &lhs, const self_type &rhs) {
+      return lhs.ptr_ != rhs.ptr_;
+    }
+
+    friend bool operator<(const self_type &lhs, const self_type &rhs) {
+      return lhs.ptr_ < rhs.ptr_;
+    }
+
+    friend bool operator>(const self_type &lhs, const self_type &rhs) {
+      return lhs.ptr_ > rhs.ptr_;
+    }
+
+    friend bool operator<=(const self_type &lhs, const self_type &rhs) {
+      return lhs.ptr_ <= rhs.ptr_;
+    }
+
+    friend bool operator>=(const self_type &lhs, const self_type &rhs) {
+      return lhs.ptr_ >= rhs.ptr_;
+    }
 
    private:
-    Vector<T> vec_;
-    size_t index_;
+    pointer ptr_;
 
   };
+
+  using iterator = Iterator;
+  using const_iterator = const Iterator;
 
   explicit Vector();
   Vector(const Vector<T> &);
@@ -41,38 +90,20 @@ class Vector {
   void Clear() noexcept;
   void Resize();
 
-  T& operator[] (size_t);
+  T &operator[](size_t) const;
 
   Iterator Begin() noexcept;
   Iterator End() noexcept;
  private:
-  T *data;
-  std::size_t size{};
-  std::size_t capacity{};
+  T *data_;
+  size_t size_{};
+  size_t capacity_{};
 
   void Initialize();
+  void Allocate(size_t, size_t);
   void Copy(const Vector &);
+
 };
-
-template<typename T>
-T &Vector<T>::Iterator::operator*() const {
-
-}
-
-template<typename T>
-typename Vector<T>::Iterator Vector<T>::Iterator::operator++() {
-  return Vector::Iterator();
-}
-
-template<typename T>
-bool Vector<T>::Iterator::operator==(const Vector::Iterator &) const {
-  return false;
-}
-
-template<typename T>
-bool Vector<T>::Iterator::operator!=(const Vector::Iterator &) const {
-  return false;
-}
 
 template<typename T>
 Vector<T>::Vector() {
@@ -81,17 +112,13 @@ Vector<T>::Vector() {
 
 template<typename T>
 void Vector<T>::Initialize() {
-  capacity = 10;
-  data = new T[capacity];
-  size = 0;
+  Allocate(0, 10);
 }
 
 template<typename T>
 void Vector<T>::Copy(const Vector &vec) {
-  capacity = vec.capacity;
-  size = vec.size;
-  data = new T[capacity];
-  for (int i = 0; i < size; i++) data[i] = vec.data[i];
+  Allocate(vec.size_, vec.capacity_);
+  for (size_t i = 0; i < size_; i++) data_[i] = vec.data_[i];
 }
 
 template<typename T>
@@ -109,57 +136,70 @@ Vector<T> &Vector<T>::operator=(const Vector &vec) {
 
 template<typename T>
 bool Vector<T>::Empty() const noexcept {
-  return size == 0;
+  return size_ == 0;
 }
 
 template<typename T>
 size_t Vector<T>::Size() const noexcept {
-  return size;
+  return size_;
 }
 
 template<typename T>
 Vector<T>::~Vector() {
-  delete[] data;
+  delete[] data_;
 }
 
 template<typename T>
 void Vector<T>::PushBack(T element) {
-  if (size == capacity) {
+  if (size_ == capacity_) {
     Resize();
   }
-  data[size++] = element;
+  data_[size_++] = element;
 }
 
 template<typename T>
 void Vector<T>::Clear() noexcept {
-  delete[] data;
+  delete[] data_;
   Initialize();
 }
 
 template<typename T>
 typename Vector<T>::Iterator Vector<T>::Begin() noexcept {
-  return Vector::Iterator();
+  return Vector::Iterator(data_);
 }
 
 template<typename T>
 typename Vector<T>::Iterator Vector<T>::End() noexcept {
-  return Vector::Iterator();
+  return Vector::Iterator(data_ + size_);
 }
 template<typename T>
 void Vector<T>::Resize() {
-  capacity = 2*capacity;
-  T* temp = new T[capacity];
-  for (int i = 0; i < size; i++) temp[i] = data[i];
-  delete[] data;
-  data = temp;
+  capacity_ = 2 * capacity_;
+  T *temp = new T[capacity_];
+  for (size_t i = 0; i < size_; i++) temp[i] = data_[i];
+  delete[] data_;
+  data_ = temp;
 }
 template<typename T>
 Vector<T>::Vector(std::initializer_list<T> list) {
-  std::cout << list.size() << std::endl;
+  Allocate(list.size(), list.size() + 1);
+  size_t i = 0;
+  for (auto it = list.begin(); it != list.end(); ++it) {
+    data_[i++] = std::move(*it);
+  }
 }
 template<typename T>
-T& Vector<T>::operator[] (size_t index) {
-  return data[index];
+T &Vector<T>::operator[](size_t index) const {
+  return data_[index];
+}
+
+template<typename T>
+void Vector<T>::Allocate(size_t size, size_t capacity) {
+  size_ = size;
+  capacity_ = capacity;
+  data_ = new T[capacity];
+}
+
 }
 
 #endif //VECTOR__VECTOR_H_
