@@ -12,7 +12,7 @@ void BubbleSort(RandomAccessIterator first, RandomAccessIterator last) {
 }
 
 template<typename RandomAccessIterator>
-inline void MergeSort(RandomAccessIterator first, RandomAccessIterator last) {
+void MergeSort(RandomAccessIterator first, RandomAccessIterator last) {
   if (last <= first + 1) return;
   RandomAccessIterator middle = first + (last - first) / 2;
   MergeSort(first, middle);
